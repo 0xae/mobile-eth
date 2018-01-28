@@ -1,6 +1,8 @@
 package com.dk.ethereumwallet;
 
+import android.app.Dialog;
 import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
@@ -50,8 +52,20 @@ public class MainActivity extends AppCompatActivity
     public static final BigInteger GAS_PRICE = new BigInteger("210000");
     public static final BigInteger GAS_LIMIT = new BigInteger("600000");
 
-    private Web3j web3j;
-    private Subscription sub;
+    private static Web3j web3j = null;
+    private static Credentials _cred = null;
+
+    public static Web3j web3j() {
+        return web3j;
+    }
+
+    private static void credentials(Credentials cred) {
+        _cred = cred;
+    }
+
+    public static Credentials credentials() {
+        return _cred;
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -64,8 +78,17 @@ public class MainActivity extends AppCompatActivity
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
+                if (_cred == null || web3j == null) {
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            Snackbar.make(view, R.string.not_available, Snackbar.LENGTH_LONG).show();
+                        }
+                    });
+                    return;
+                }
+
+                startActivity(new Intent(MainActivity.this, PaymentActivity.class));
             }
         });
 
@@ -78,7 +101,35 @@ public class MainActivity extends AppCompatActivity
         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
 
-        connectToEthNetwork();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (web3j == null) {
+            connectToEthNetwork();
+        } else {
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            ((TextView)findViewById(R.id.address))
+                                    .setText(_cred.getAddress().substring(0, 10));
+                        }
+                    });
+
+                    while (true) {
+                        try {
+                            updateBalance(web3j, _cred.getAddress());
+                            Thread.sleep(2000);
+                        } catch (Exception e) {
+                        }
+                    }
+                }
+            }).start();
+        }
     }
 
     private void connectToEthNetwork() {
@@ -93,8 +144,21 @@ public class MainActivity extends AppCompatActivity
                     Log.d("cp", "clientVersion " + clientVersion);
 
                     Credentials credentials = getWallet("123");
+                    MainActivity.credentials(credentials);
 
-                    sub = watchBalance(web3j, credentials.getAddress());
+                    new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            while (true) {
+                                try {
+                                    updateBalance(web3j, credentials.getAddress());
+                                    Thread.sleep(2000);
+                                } catch (Exception e) {
+                                }
+                            }
+                        }
+                    }).start();
+
                     final String address = credentials.getAddress();
 
                     Log.d("cp", "[INFO] credencials loaded.");
@@ -104,11 +168,11 @@ public class MainActivity extends AppCompatActivity
                         @Override
                         public void run() {
                             ((TextView)findViewById(R.id.address))
-                                    .setText(address.substring(0, 16));
+                                .setText(_cred.getAddress().substring(0, 10));
                         }
                     });
                 } catch (Exception e) {
-                    throw new RuntimeException(e);
+                    // throw new RuntimeException(e);
                 }
             }
         }).start();
@@ -153,24 +217,24 @@ public class MainActivity extends AppCompatActivity
         }
     }
 
-    private Subscription watchBalance(Web3j web3, String address) throws Exception {
-        return web3.ethGetBalance(address, DefaultBlockParameterName.LATEST)
-            .observable()
-            .subscribe(val -> {
-                BigDecimal balance = Convert.fromWei(
-                    val.getBalance().toString(),
-                    Convert.Unit.ETHER
-                );
+    private void updateBalance(Web3j web3, String address) throws Exception {
+        web3.ethGetBalance(address, DefaultBlockParameterName.LATEST)
+        .observable()
+        .subscribe(val -> {
+            BigDecimal balance = Convert.fromWei(
+                val.getBalance().toString(),
+                Convert.Unit.ETHER
+            );
 
-                Log.d("cp", "New balance for " + address + ": " + balance);
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        ((TextView)findViewById(R.id.balance))
-                                .setText(balance.toString() + " ETH");
-                    }
-                });
+            Log.d("cp", "New balance for " + address + ": " + balance);
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    ((TextView)findViewById(R.id.balance))
+                            .setText(balance.toString() + " ETH");
+                }
             });
+        });
     }
 
     @Override
@@ -211,18 +275,15 @@ public class MainActivity extends AppCompatActivity
         // Handle navigation view item clicks here.
         int id = item.getItemId();
 
-        if (id == R.id.nav_camera) {
-            // Handle the camera action
-        } else if (id == R.id.nav_gallery) {
-
-        } else if (id == R.id.nav_slideshow) {
-
-        } else if (id == R.id.nav_manage) {
-
-        } else if (id == R.id.nav_share) {
-
-        } else if (id == R.id.nav_send) {
-
+        if (id == R.id.menu_qrcode) {
+            startActivity(new Intent(MainActivity.this, PaymentScannerActivity.class));
+        } else if (id == R.id.receive_payment) {
+            Intent intent = new Intent(MainActivity.this, ReceivePaymentActivity.class);
+            if (_cred != null) {
+                String address = _cred.getAddress();
+                intent.putExtra("address", address);
+            }
+            startActivity(intent);
         }
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
