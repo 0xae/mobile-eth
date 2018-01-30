@@ -3,6 +3,7 @@ package com.dk.ethereumwallet;
 import android.app.Dialog;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
@@ -20,6 +21,7 @@ import android.view.MenuItem;
 import android.widget.TextView;
 
 import org.web3j.crypto.Credentials;
+import org.web3j.crypto.Wallet;
 import org.web3j.crypto.WalletUtils;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.Web3jFactory;
@@ -48,6 +50,7 @@ import rx.Subscription;
 
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
+    public static final String PREFS_NAME = "AppSettings";
 
     public static final BigInteger GAS_PRICE = new BigInteger("210000");
     public static final BigInteger GAS_LIMIT = new BigInteger("600000");
@@ -112,129 +115,16 @@ public class MainActivity extends AppCompatActivity
             new Thread(new Runnable() {
                 @Override
                 public void run() {
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            ((TextView)findViewById(R.id.address))
-                                    .setText(_cred.getAddress().substring(0, 10));
-                        }
-                    });
-
                     while (true) {
                         try {
                             updateBalance(web3j, _cred.getAddress());
-                            Thread.sleep(2000);
+                            Thread.sleep(1000);
                         } catch (Exception e) {
                         }
                     }
                 }
             }).start();
         }
-    }
-
-    private void connectToEthNetwork() {
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    web3j = Web3jFactory.build(new HttpService("http://192.168.43.201:8545"));
-                    Web3ClientVersion web3ClientVersion = web3j.web3ClientVersion().send();
-                    String clientVersion = web3ClientVersion.getWeb3ClientVersion();
-
-                    Log.d("cp", "clientVersion " + clientVersion);
-
-                    Credentials credentials = getWallet("123");
-                    MainActivity.credentials(credentials);
-
-                    new Thread(new Runnable() {
-                        @Override
-                        public void run() {
-                            while (true) {
-                                try {
-                                    updateBalance(web3j, credentials.getAddress());
-                                    Thread.sleep(2000);
-                                } catch (Exception e) {
-                                }
-                            }
-                        }
-                    }).start();
-
-                    final String address = credentials.getAddress();
-
-                    Log.d("cp", "[INFO] credencials loaded.");
-                    Log.d("cp", "Pay me: " + credentials.getAddress());
-
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            ((TextView)findViewById(R.id.address))
-                                .setText(_cred.getAddress().substring(0, 10));
-                        }
-                    });
-                } catch (Exception e) {
-                    // throw new RuntimeException(e);
-                }
-            }
-        }).start();
-    }
-
-    private Credentials getWallet(String password) {
-        File dir = getFilesDir();
-        String FILENAME = "wallet_file";
-        File walletFile;
-
-        try {
-            InputStream stream = openFileInput(FILENAME);
-            BufferedReader reader = new BufferedReader(new InputStreamReader(stream));
-            String name = reader.readLine();
-            stream.close();
-            walletFile = new File(dir, name);
-            Log.d("cp", "wallet file  is '" + name + "'");
-        } catch (IOException e) {
-            Log.d("cp", "could not open wallet file " + e.getMessage());
-            try {
-                Log.d("cp", "generating wallet file");
-
-                String walletName = WalletUtils.generateNewWalletFile(password, dir, false);
-                walletFile = new File(dir, walletName);
-
-                Log.d("cp", "generated wallet file at " + walletFile);
-
-                FileOutputStream fos = openFileOutput(FILENAME, Context.MODE_PRIVATE);
-                fos.write(walletName.getBytes());
-                fos.close();
-            } catch (Exception e2) {
-                throw new RuntimeException(e2);
-            }
-        }
-
-        try {
-            Credentials c = WalletUtils.loadCredentials(password, walletFile);
-            Log.d("cp", "loaded wallet file ");
-            return c;
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    private void updateBalance(Web3j web3, String address) throws Exception {
-        web3.ethGetBalance(address, DefaultBlockParameterName.LATEST)
-        .observable()
-        .subscribe(val -> {
-            BigDecimal balance = Convert.fromWei(
-                val.getBalance().toString(),
-                Convert.Unit.ETHER
-            );
-
-            Log.d("cp", "New balance for " + address + ": " + balance);
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    ((TextView)findViewById(R.id.balance))
-                            .setText(balance.toString() + " ETH");
-                }
-            });
-        });
     }
 
     @Override
@@ -284,10 +174,121 @@ public class MainActivity extends AppCompatActivity
                 intent.putExtra("address", address);
             }
             startActivity(intent);
+        } else if (id == R.id.peer_map) {
+            Intent intent = new Intent(MainActivity.this, MapActivity.class);
+            startActivity(intent);
+        } else if (id == R.id.app_settings) {
+            Intent intent = new Intent(MainActivity.this, SettingsActivity.class);
+            startActivity(intent);
         }
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         drawer.closeDrawer(GravityCompat.START);
         return true;
+    }
+
+    private void connectToEthNetwork() {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                SharedPreferences settings = getSharedPreferences(PREFS_NAME, 0);
+                String miner = settings.getString("miner", getString(R.string.default_net));
+
+                try {
+                    Log.d("cp", "Attempt to connect to network at " + miner);
+                    web3j = Web3jFactory.build(new HttpService(miner));
+                } catch (Exception e) {
+                    String msg = "Unable to connect to network at " + miner;
+                    runOnUiThread(() -> {
+                        Snackbar.make(getCurrentFocus(), msg, Snackbar.LENGTH_LONG).show();
+                    });
+                    Log.d("cp", msg);
+                    return;
+                }
+
+                try {
+                    Web3ClientVersion web3ClientVersion = web3j.web3ClientVersion().send();
+                    String clientVersion = web3ClientVersion.getWeb3ClientVersion();
+
+                    _cred = getWallet("123");
+
+                    updateBalance(web3j, _cred.getAddress());
+
+                    Log.d("cp", "clientVersion " + clientVersion);
+                    Log.d("cp", "[INFO] credencials loaded.");
+                    Log.d("cp", "Pay me: " + _cred.getAddress());
+
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            ((TextView)findViewById(R.id.address))
+                                    .setText(_cred.getAddress().substring(0, 10));
+                        }
+                    });
+                } catch (Exception e) {
+                    // throw new RuntimeException(e);
+                    e.printStackTrace();
+                }
+            }
+        }).start();
+    }
+
+    private Credentials getWallet(String password) {
+        File dir = getFilesDir();
+        String FILENAME = "wallet_file";
+        File walletFile;
+
+        try {
+            InputStream stream = openFileInput(FILENAME);
+            BufferedReader reader = new BufferedReader(new InputStreamReader(stream));
+            String name = reader.readLine();
+            stream.close();
+            walletFile = new File(dir, name);
+            Log.d("cp", "wallet file  is '" + name + "'");
+        } catch (IOException e) {
+            Log.d("cp", "could not open wallet file " + e.getMessage());
+            try {
+                Log.d("cp", "generating wallet file");
+
+                String walletName = WalletUtils.generateNewWalletFile(password, dir, false);
+                walletFile = new File(dir, walletName);
+
+                Log.d("cp", "generated wallet file at " + walletFile);
+
+                FileOutputStream fos = openFileOutput(FILENAME, Context.MODE_PRIVATE);
+                fos.write(walletName.getBytes());
+                fos.close();
+            } catch (Exception e2) {
+                throw new RuntimeException(e2);
+            }
+        }
+
+        try {
+            Credentials c = WalletUtils.loadCredentials(password, walletFile);
+            Log.d("cp", "loaded wallet file ");
+            return c;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void updateBalance(Web3j web3, String address) throws Exception {
+        web3.ethGetBalance(address, DefaultBlockParameterName.LATEST)
+                .observable()
+                .subscribe(val -> {
+                    BigDecimal balance = Convert.fromWei(
+                            val.getBalance().toString(),
+                            Convert.Unit.ETHER
+                    );
+
+                    Log.d("cp", "New balance for " + address + ": " + balance);
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            ((TextView)findViewById(R.id.balance))
+                                    .setText(balance.toString() + " ETH");
+                        }
+                    });
+                });
     }
 }

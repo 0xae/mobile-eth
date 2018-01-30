@@ -5,6 +5,11 @@
 
     <group android:checkableBehavior="single">
         <item
+            android:id="@+id/peer_map"
+            android:icon="@drawable/side_nav_bar"
+            android:title="Map" />
+
+        <item
             android:id="@+id/menu_qrcode"
             android:icon="@drawable/ic_menu_camera"
             android:title="Scan QRCode" />
@@ -34,9 +39,9 @@
     <item android:title="More">
         <menu>
             <item
-                android:id="@+id/nav_share"
-                android:icon="@drawable/ic_menu_share"
-                android:title="Share to friends" />
+                android:id="@+id/app_settings"
+                android:icon="@drawable/common_full_open_on_phone"
+                android:title="Settings" />
         </menu>
     </item>
 
