@@ -39,4 +39,5 @@ dependencies {
     compile 'com.google.zxing:core:3.2.1'
     compile 'me.dm7.barcodescanner:zxing:1.9.8'
     compile('org.web3j:core:3.1.1-android')
+    compile 'org.jetbrains:annotations:15.0'
 }

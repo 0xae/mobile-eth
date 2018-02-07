@@ -1,12 +1,15 @@
 package com.dk.ethereumwallet;
 
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.support.design.widget.Snackbar;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import org.web3j.crypto.Credentials;
 import org.web3j.protocol.Web3j;
@@ -43,15 +46,38 @@ public class PaymentActivity extends AppCompatActivity {
                     address = ((TextView)findViewById(R.id.payment_address)).getText().toString();
                     value = ((TextView)findViewById(R.id.payment_value)).getText().toString();
 
-                    BigDecimal amount = new BigDecimal(value);
-                    new Thread(new Runnable() {
-                        @Override
-                        public void run() {
-                            payToPerson(MainActivity.web3j(), MainActivity.credentials(), address, amount);
-                        }
-                    }).start();
-//                    Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-//                            .setAction("Action", null).show();
+                    new AlertDialog.Builder(PaymentActivity.this)
+                        .setTitle("Confirmar pagamento")
+                        .setMessage("Confirmar pagamento de " + value + " para " + address + " ?")
+                        .setIcon(android.R.drawable.ic_dialog_alert)
+                        .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int whichButton) {
+                                new Thread(() -> {
+                                    try {
+                                        BigDecimal amount = new BigDecimal(value);
+                                        payToPerson(MainActivity.web3j(), MainActivity.credentials(), address, amount);
+                                        Toast.makeText(PaymentActivity.this,
+                                                "Pagamento enviado!", Toast.LENGTH_SHORT)
+                                                .show();
+                                        runOnUiThread(() -> {
+                                            Intent intent = new Intent(PaymentActivity.this, MainActivity.class);
+                                            finish();
+                                            startActivity(intent);
+                                        });
+                                    } catch (RuntimeException e) {
+                                        runOnUiThread(() -> {
+                                            Toast.makeText(PaymentActivity.this,
+                                                "O seu pagamento nao pode ser enviado."+
+                                                        "verique se tem fundos disponiveis.", Toast.LENGTH_SHORT)
+                                                .show();
+                                        });
+                                    }
+                                }).start();
+                            }
+                        })
+                        .setNegativeButton(android.R.string.no, new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int whichButton) { }
+                        }).show();
                 }
             });
 

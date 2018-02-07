@@ -1,5 +1,8 @@
 package com.dk.ethereumwallet;
 
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
 import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
@@ -25,6 +28,22 @@ public class ReceivePaymentActivity extends AppCompatActivity {
         setContentView(R.layout.activity_receive_payment);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
+
+        findViewById(R.id.copy_address)
+        .setOnClickListener((view) -> {
+            String msg;
+            if (MainActivity.credentials() != null) {
+                String addr = MainActivity.credentials().getAddress();
+
+                ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+                ClipData clip = ClipData.newPlainText("Endereco", addr);
+                clipboard.setPrimaryClip(clip);
+                msg = "Endereco " + addr + " copiado com sucesso!";
+            } else {
+                msg = "Aguarde o carregamento do wallet!!";
+            }
+            Snackbar.make(view, msg, Snackbar.LENGTH_LONG).show();
+        });
 
         String address;
         Bundle extras = getIntent().getExtras();

@@ -9,33 +9,72 @@
     tools:showIn="@layout/app_bar_main">
 
     <LinearLayout
+        android:id="@+id/info_container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        tools:layout_editor_absoluteX="194dp"
+        tools:layout_editor_absoluteY="0dp">
+
+        <TextView
+            android:id="@+id/textView2"
+            android:layout_width="351dp"
+            android:layout_height="wrap_content"
+            android:padding="6dp"
+            android:text="Meu endereco"
+            tools:layout_editor_absoluteX="16dp"
+            tools:layout_editor_absoluteY="6dp" />
+
+        <TextView
+            android:id="@+id/address"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignRight="@id/address"
+            android:editable="false"
+            android:inputType="text"
+            android:paddingLeft="10dp"
+            android:paddingTop="10dp"
+            android:text="0x0000000000"
+            android:textSize="24dp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/my_balance_label"
+            android:layout_width="351dp"
+            android:layout_height="wrap_content"
+            android:padding="6dp"
+            android:text="Meu balanco"
+            tools:layout_editor_absoluteX="16dp"
+            tools:layout_editor_absoluteY="6dp" />
+
+        <TextView
+            android:id="@+id/balance"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignRight="@id/address"
+            android:editable="false"
+            android:inputType="numberDecimal"
+            android:paddingLeft="10dp"
+            android:paddingTop="10dp"
+            android:text="0.00 ETH"
+            android:textSize="24dp"
+            android:textStyle="bold" />
+
+        <ListView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+    </LinearLayout>
+
+    <LinearLayout
         xmlns:android="http://schemas.android.com/apk/res/android"
         android:orientation="horizontal"
         android:layout_height="50dp"
         android:layout_width="fill_parent"
+        app:layout_constraintBottom_toBottomOf="@+id/info_container"
         >
 
-        <TextView
-            android:id="@+id/address"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Loading wallet..."
-            android:paddingLeft="10dp"
-            android:paddingTop="10dp"
-            android:layout_alignLeft="@id/balance"
-        />
-
-        <TextView
-            android:id="@+id/balance"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text=""
-            android:paddingTop="10dp"
-            android:textStyle="bold"
-            android:textSize="24dp"
-            android:layout_alignRight="@id/address"
-        />
     </LinearLayout>
+
 
     <!--<TextView-->
         <!--android:id="@+id/no_payments"-->

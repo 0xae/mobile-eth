@@ -38,30 +38,21 @@
             android:padding="13dp"
             android:layout_height="50dp"
             android:ems="10"
-            android:inputType="number"
+            android:inputType="numberDecimal"
             android:hint="0.00 ETH"
             tools:ignore="MissingConstraints"
             tools:layout_editor_absoluteX="14dp"
             tools:layout_editor_absoluteY="98dp" />
     </LinearLayout>
 
-
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="60dp"
         android:layout_alignParentBottom="true"
-        app:layout_constraintBottom_toBottomOf="@+id/payment_container"
         android:gravity="center"
-        android:orientation="horizontal">
-
-        <Button
-            android:id="@+id/send_payment"
-            android:layout_width="218dp"
-            android:layout_height="50dp"
-            android:text="Enviar pagamento"
-            tools:ignore="MissingConstraints"
-            tools:layout_editor_absoluteX="16dp"
-            tools:layout_editor_absoluteY="440dp" />
+        android:orientation="horizontal"
+        app:layout_constraintBottom_toBottomOf="@+id/payment_container"
+        tools:layout_editor_absoluteX="0dp">
 
         <Button
             android:id="@+id/cancel_payment"
@@ -72,6 +63,15 @@
             tools:layout_editor_absoluteX="240dp"
             tools:layout_editor_absoluteY="440dp" />
 
+        <Button
+            android:id="@+id/send_payment"
+            android:layout_width="218dp"
+            android:layout_height="50dp"
+            android:text="Enviar pagamento"
+            tools:ignore="MissingConstraints"
+            tools:layout_editor_absoluteX="16dp"
+            tools:layout_editor_absoluteY="440dp"
+        />
     </LinearLayout>
 
 </android.support.constraint.ConstraintLayout>
