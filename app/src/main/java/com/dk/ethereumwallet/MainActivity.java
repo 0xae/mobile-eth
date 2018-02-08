@@ -52,21 +52,6 @@ public class MainActivity extends AppCompatActivity
     public static final BigInteger GAS_PRICE = new BigInteger("210000");
     public static final BigInteger GAS_LIMIT = new BigInteger("600000");
 
-    private static Web3j web3j = null;
-    private static Credentials _cred = null;
-
-    public static Web3j web3j() {
-        return web3j;
-    }
-
-    private static void credentials(Credentials cred) {
-        _cred = cred;
-    }
-
-    public static Credentials credentials() {
-        return _cred;
-    }
-
     private BroadcastReceiver receiver;
     private BigDecimal currentBalance = BigDecimal.ZERO;
 
@@ -206,10 +191,8 @@ public class MainActivity extends AppCompatActivity
             startActivity(new Intent(MainActivity.this, PaymentScannerActivity.class));
         } else if (id == R.id.receive_payment) {
             Intent intent = new Intent(MainActivity.this, ReceivePaymentActivity.class);
-            if (_cred != null) {
-                String address = _cred.getAddress();
-                intent.putExtra("address", address);
-            }
+            String address = ((TextView)findViewById(R.id.address)).getText().toString();
+            intent.putExtra("address", address);
             startActivity(intent);
         } else if (id == R.id.peer_map) {
             Intent intent = new Intent(MainActivity.this, MapActivity.class);

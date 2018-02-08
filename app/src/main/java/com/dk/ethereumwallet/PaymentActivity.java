@@ -11,6 +11,8 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.dk.ethereumwallet.core.EventReceiver;
+
 import org.web3j.crypto.Credentials;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
@@ -20,15 +22,15 @@ import org.web3j.utils.Convert;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 
-public class PaymentActivity extends AppCompatActivity {
+public class PaymentActivity extends AppCompatActivity implements EventReceiver.EventHandler {
     public static final BigInteger GAS_PRICE = new BigInteger("210000");
     public static final BigInteger GAS_LIMIT = new BigInteger("600000");
+    private BigDecimal currentBalance = BigDecimal.ZERO;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_payment2);
-        String exampleAddress = "0xcB14a11F75CDFb1613E30ebF3512103dB0f27A0C";
 
         Bundle extras = getIntent().getExtras();
         String addr;
@@ -36,52 +38,44 @@ public class PaymentActivity extends AppCompatActivity {
             ((TextView)findViewById(R.id.payment_address)).setText(addr);
         }
 
-        ((Button) findViewById(R.id.send_payment))
-            .setOnClickListener(new View.OnClickListener(){
-                @Override
-                public void onClick(View view) {
-                    String address;
-                    String value;
+        findViewById(R.id.send_payment)
+        .setOnClickListener(new View.OnClickListener(){
+            @Override
+            public void onClick(View view) {
+                String address;
+                String value;
 
-                    address = ((TextView)findViewById(R.id.payment_address)).getText().toString();
-                    value = ((TextView)findViewById(R.id.payment_value)).getText().toString();
+                address = ((TextView)findViewById(R.id.payment_address)).getText().toString();
+                value = ((TextView)findViewById(R.id.payment_value)).getText().toString();
 
-                    new AlertDialog.Builder(PaymentActivity.this)
-                        .setTitle("Confirmar pagamento")
-                        .setMessage("Confirmar pagamento de " + value + " para " + address + " ?")
-                        .setIcon(android.R.drawable.ic_dialog_alert)
-                        .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
-                            public void onClick(DialogInterface dialog, int whichButton) {
-                                new Thread(() -> {
-                                    try {
-                                        BigDecimal amount = new BigDecimal(value);
-                                        payToPerson(MainActivity.web3j(), MainActivity.credentials(), address, amount);
+                new AlertDialog.Builder(PaymentActivity.this)
+                    .setTitle("Confirmar pagamento")
+                    .setMessage("Enviar " + value + " para " + address + " ?")
+                    .setIcon(android.R.drawable.ic_dialog_alert)
+                    .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int whichButton) {
+                            new Thread(() -> {
+                                try {
+                                    BigDecimal amount = new BigDecimal(value);
+                                    payToPerson(MainActivity.web3j(), MainActivity.credentials(), address, amount);
+                                } catch (RuntimeException e) {
+                                    runOnUiThread(() -> {
                                         Toast.makeText(PaymentActivity.this,
-                                                "Pagamento enviado!", Toast.LENGTH_SHORT)
-                                                .show();
-                                        runOnUiThread(() -> {
-                                            Intent intent = new Intent(PaymentActivity.this, MainActivity.class);
-                                            finish();
-                                            startActivity(intent);
-                                        });
-                                    } catch (RuntimeException e) {
-                                        runOnUiThread(() -> {
-                                            Toast.makeText(PaymentActivity.this,
-                                                "O seu pagamento nao pode ser enviado."+
-                                                        "verique se tem fundos disponiveis.", Toast.LENGTH_SHORT)
-                                                .show();
-                                        });
-                                    }
-                                }).start();
-                            }
-                        })
-                        .setNegativeButton(android.R.string.no, new DialogInterface.OnClickListener() {
-                            public void onClick(DialogInterface dialog, int whichButton) { }
-                        }).show();
-                }
-            });
+                                            "O seu pagamento nao pode ser enviado."+
+                                                    "verique se tem fundos disponiveis.", Toast.LENGTH_SHORT)
+                                            .show();
+                                    });
+                                }
+                            }).start();
+                        }
+                    })
+                    .setNegativeButton(android.R.string.no, new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int whichButton) { }
+                    }).show();
+            }
+        });
 
-        ((Button) findViewById(R.id.cancel_payment))
+        findViewById(R.id.cancel_payment)
         .setOnClickListener(new View.OnClickListener(){
             @Override
             public void onClick(View view) {
@@ -90,14 +84,43 @@ public class PaymentActivity extends AppCompatActivity {
         });
     }
 
-    private void payToPerson(Web3j web3, Credentials cred, String address, BigDecimal amount) {
-        try {
-            TransactionReceipt receipt = Transfer.sendFunds(
-                    web3, cred,
-                    address, amount, Convert.Unit.ETHER)
-                    .send();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+    @Override
+    public void onBalance(BigDecimal value) {
+        currentBalance = value;
+    }
+
+    @Override
+    public void onPaymentSent(String transactionHash) {
+        Toast.makeText(PaymentActivity.this,
+                "Pagamento enviado!", Toast.LENGTH_SHORT)
+                .show();
+
+        Intent intent = new Intent(PaymentActivity.this, MainActivity.class);
+        finish();
+        startActivity(intent);
+    }
+
+    @Override
+    public void onPaymentReceived() {
+    }
+
+    @Override
+    public void onUnlockWallet(Credentials cred) {
+    }
+
+    @Override
+    public void onPublicAddress(String address) {
+    }
+
+    @Override
+    public void onNetworkDown() {
+    }
+
+    @Override
+    public void onNetworkUp() {
+    }
+
+    @Override
+    public void onException(String msg) {
     }
 }
